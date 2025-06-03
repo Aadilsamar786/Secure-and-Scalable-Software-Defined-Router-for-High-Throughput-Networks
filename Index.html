@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Traffic Monitor Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #fff, #a8edea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .control-panel, .stats-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #fff;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-start {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-stop {
+            background: linear-gradient(45deg, #f44336, #da190b);
+            color: white;
+        }
+
+        .btn-refresh {
+            background: linear-gradient(45deg, #2196F3, #0b7dda);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-active {
+            background: #4CAF50;
+        }
+
+        .status-inactive {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #a8edea;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .tabs {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active, .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 400px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .status-failed {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .control-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔒 Secure Traffic Monitor</h1>
+        <p>Real-time monitoring of encrypted traffic forwarding and BGP routing</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="control-panel">
+            <h2 class="panel-title">🎛️ Control Panel</h2>
+            <div class="control-buttons">
+                <button class="btn btn-start" onclick="startSniffer()">
+                    <span id="start-status">Start Sniffer</span>
+                </button>
+                <button class="btn btn-stop" onclick="stopSniffer()">
+                    Stop Sniffer
+                </button>
+                <button class="btn btn-refresh" onclick="refreshData()">
+                    <span id="refresh-icon">🔄</span> Refresh
+                </button>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <strong>Sniffer Status:</strong>
+                <span class="status-indicator" id="status-indicator"></span>
+                <span id="sniffer-status">Inactive</span>
+            </div>
+
+            <div>
+                <strong>Active Sessions:</strong> <span id="active-sessions">0</span>
+            </div>
+
+            <div style="margin-top: 10px;">
+                <strong>Uptime:</strong> <span id="uptime">00:00:00</span>
+            </div>
+        </div>
+
+        <div class="stats-panel">
+            <h2 class="panel-title">📊 Live Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="current-bandwidth">0.0</div>
+                    <div class="stat-label">Current Mbps</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="peak-bandwidth">0.0</div>
+                    <div class="stat-label">Peak Mbps</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="total-bytes">0</div>
+                    <div class="stat-label">Total Bytes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="success-rate">0%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="showTab('traffic')">📈 Traffic Chart</button>
+            <button class="tab-btn" onclick="showTab('routes')">🛣️ BGP Routes</button>
+            <button class="tab-btn" onclick="showTab('logs')">📋 Packet Logs</button>
+            <button class="tab-btn" onclick="showTab('sessions')">🔗 Active Sessions</button>
+        </div>
+
+        <div id="traffic-tab" class="tab-content active">
+            <div class="chart-container">
+                <canvas id="trafficChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <div id="routes-tab" class="tab-content">
+            <div class="table-container">
+                <table id="bgp-routes-table">
+                    <thead>
+                    <tr>
+                        <th>Destination</th>
+                        <th>Next Hop</th>
+                        <th>ASN</th>
+                        <th>Hop Count</th>
+                        <th>Status</th>
+                        <th>Last Updated</th>
+                    </tr>
+                    </thead>
+                    <tbody id="bgp-routes-body">
+                    <tr><td colspan="6">Loading BGP routes...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="logs-tab" class="tab-content">
+            <div class="table-container">
+                <table id="packet-logs-table">
+                    <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Direction</th>
+                        <th>Source</th>
+                        <th>Destination</th>
+                        <th>Protocol</th>
+                        <th>Bytes</th>
+                        <th>Encryption</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody id="packet-logs-body">
+                    <tr><td colspan="8">Loading packet logs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sessions-tab" class="tab-content">
+            <div class="table-container">
+                <table id="sessions-table">
+                    <thead>
+                    <tr>
+                        <th>Session ID</th>
+                        <th>Source IP</th>
+                        <th>Dest IP</th>
+                        <th>Protocol</th>
+                        <th>Duration</th>
+                        <th>Bytes In</th>
+                        <th>Bytes Out</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody id="sessions-body">
+                    <tr><td colspan="8">Loading sessions...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global state
+    let snifferActive = false;
+    let chartData = [];
+    let trafficChart = null;
+    let updateInterval = null;
+    let startTime = Date.now();
+
+    // Initialize the dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        initTrafficChart();
+        updateDashboard();
+        startAutoRefresh();
+    });
+
+    // Tab management
+    function showTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+
+        // Remove active from all buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show selected tab
+        document.getElementById(tabName + '-tab').classList.add('active');
+        event.target.classList.add('active');
+
+        // Load tab-specific data
+        if (tabName === 'routes') {
+            loadBGPRoutes();
+        } else if (tabName === 'logs') {
+            loadPacketLogs();
+        } else if (tabName === 'sessions') {
+            loadActiveSessions();
+        }
+    }
+
+    // Control functions
+    async function startSniffer() {
+        const startBtn = document.querySelector('.btn-start');
+        const statusSpan = document.getElementById('start-status');
+
+        startBtn.disabled = true;
+        statusSpan.innerHTML = '<span class="loading"></span> Starting...';
+
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            snifferActive = true;
+            updateSnifferStatus();
+            statusSpan.textContent = 'Start Sniffer';
+
+            showNotification('Sniffer started successfully!', 'success');
+        } catch (error) {
+            showNotification('Failed to start sniffer: ' + error.message, 'error');
+            statusSpan.textContent = 'Start Sniffer';
+        } finally {
+            startBtn.disabled = false;
+        }
+    }
+
+    async function stopSniffer() {
+        const stopBtn = document.querySelector('.btn-stop');
+        stopBtn.disabled = true;
+
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            snifferActive = false;
+            updateSnifferStatus();
+
+            showNotification('Sniffer stopped successfully!', 'success');
+        } catch (error) {
+            showNotification('Failed to stop sniffer: ' + error.message, 'error');
+        } finally {
+            stopBtn.disabled = false;
+        }
+    }
+
+    async function refreshData() {
+        const refreshIcon = document.getElementById('refresh-icon');
+        refreshIcon.innerHTML = '<span class="loading"></span>';
+
+        try {
+            await updateDashboard();
+            showNotification('Data refreshed successfully!', 'success');
+        } catch (error) {
+            showNotification('Failed to refresh data: ' + error.message, 'error');
+        } finally {
+            refreshIcon.textContent = '🔄';
+        }
+    }
+
+    // Update functions
+    function updateSnifferStatus() {
+        const indicator = document.getElementById('status-indicator');
+        const status = document.getElementById('sniffer-status');
+
+        if (snifferActive) {
+            indicator.className = 'status-indicator status-active';
+            status.textContent = 'Active';
+        } else {
+            indicator.className = 'status-indicator status-inactive';
+            status.textContent = 'Inactive';
+        }
+    }
+
+    async function updateDashboard() {
+        // Simulate fetching live stats
+        const stats = generateMockStats();
+
+        document.getElementById('current-bandwidth').textContent = stats.currentBandwidth.toFixed(1);
+        document.getElementById('peak-bandwidth').textContent = stats.peakBandwidth.toFixed(1);
+        document.getElementById('total-bytes').textContent = formatBytes(stats.totalBytes);
+        document.getElementById('success-rate').textContent = stats.successRate + '%';
+        document.getElementById('active-sessions').textContent = stats.activeSessions;
+
+        updateUptime();
+        updateTrafficChart(stats);
+    }
+
+    function updateUptime() {
+        const uptime = Math.floor((Date.now() - startTime) / 1000);
+        const hours = Math.floor(uptime / 3600);
+        const minutes = Math.floor((uptime % 3600) / 60);
+        const seconds = uptime % 60;
+
+        document.getElementById('uptime').textContent =
+            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Chart functions
+    function initTrafficChart() {
+        const canvas = document.getElementById('trafficChart');
+        const ctx = canvas.getContext('2d');
+
+        // Simple chart implementation
+        trafficChart = {
+            canvas: canvas,
+            ctx: ctx,
+            data: [],
+            maxPoints: 50
+        };
+    }
+
+    function updateTrafficChart(stats) {
+        const chart = trafficChart;
+        const now = new Date();
+
+        // Add new data point
+        chart.data.push({
+            time: now,
+            bandwidth: stats.currentBandwidth
+        });
+
+        // Keep only last 50 points
+        if (chart.data.length > chart.maxPoints) {
+            chart.data.shift();
+        }
+
+        drawChart();
+    }
+
+    function drawChart() {
+        const chart = trafficChart;
+        const ctx = chart.ctx;
+        const canvas = chart.canvas;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (chart.data.length < 2) return;
+
+        // Chart settings
+        const padding = 40;
+        const width = canvas.width - 2 * padding;
+        const height = canvas.height - 2 * padding;
+
+        // Find min/max values
+        const maxBandwidth = Math.max(...chart.data.map(d => d.bandwidth), 10);
+
+        // Draw grid
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+
+        for (let i = 0; i <= 5; i++) {
+            const y = padding + (height * i / 5);
+            ctx.beginPath();
+            ctx.moveTo(padding, y);
+            ctx.lineTo(padding + width, y);
+            ctx.stroke();
+        }
+
+        // Draw line
+        ctx.strokeStyle = '#a8edea';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        chart.data.forEach((point, index) => {
+            const x = padding + (width * index / (chart.data.length - 1));
+            const y = padding + height - (height * point.bandwidth / maxBandwidth);
+
+            if (index === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+
+        ctx.stroke();
+
+        // Draw labels
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.font = '12px Inter';
+        ctx.fillText('Bandwidth (Mbps)', padding, padding - 10);
+        ctx.fillText(maxBandwidth.toFixed(1), padding - 35, padding + 5);
+        ctx.fillText('0', padding - 15, padding + height + 5);
+    }
+
+    // Data loading functions
+    async function loadBGPRoutes() {
+        const tbody = document.getElementById('bgp-routes-body');
+        tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+
+        // Simulate loading BGP routes
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const routes = generateMockBGPRoutes();
+        tbody.innerHTML = routes.map(route => `
+            <tr>
+                <td>${route.destination}</td>
+                <td>${route.nextHop}</td>
+                <td>${route.asn}</td>
+                <td>${route.hopCount}</td>
+                <td><span class="status-${route.status.toLowerCase()}">${route.status}</span></td>
+                <td>${route.lastUpdated}</td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadPacketLogs() {
+        const tbody = document.getElementById('packet-logs-body');
+        tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        const logs = generateMockPacketLogs();
+        tbody.innerHTML = logs.map(log => `
+            <tr>
+                <td>${log.time}</td>
+                <td>${log.direction}</td>
+                <td>${log.source}</td>
+                <td>${log.destination}</td>
+                <td>${log.protocol}</td>
+                <td>${formatBytes(log.bytes)}</td>
+                <td><span class="status-${log.encryption.toLowerCase()}">${log.encryption}</span></td>
+                <td><span class="status-${log.status.toLowerCase()}">${log.status}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadActiveSessions() {
+        const tbody = document.getElementById('sessions-body');
+        tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
+
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        const sessions = generateMockSessions();
+        tbody.innerHTML = sessions.map(session => `
+            <tr>
+                <td>${session.sessionId}</td>
+                <td>${session.sourceIp}</td>
+                <td>${session.destIp}</td>
+                <td>${session.protocol}</td>
+                <td>${session.duration}</td>
+                <td>${formatBytes(session.bytesIn)}</td>
+                <td>${formatBytes(session.bytesOut)}</td>
+                <td><span class="status-${session.status.toLowerCase()}">${session.status}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    // Mock data generators
+    function generateMockStats() {
+        return {
+            currentBandwidth: Math.random() * 100,
+            peakBandwidth: 150 + Math.random() * 50,
+            totalBytes: Math.floor(Math.random() * 1000000000),
+            successRate: 95 + Math.floor(Math.random() * 5),
+            activeSessions: Math.floor(Math.random() * 20) + 5
+        };
+    }
+
+    function generateMockBGPRoutes() {
+        const routes = [];
+        const destinations = ['203.0.113.0/24', '198.51.100.0/24', '192.0.2.0/24', '10.0.0.0/8'];
+        const nextHops = ['203.0.113.1', '198.51.100.1', '192.0.2.1'];
+
+        destinations.forEach((dest, i) => {
+            routes.push({
+                destination: dest,
+                nextHop: nextHops[i % nextHops.length],
+                asn: 65000 + i,
+                hopCount: Math.floor(Math.random() * 10) + 3,
+                status: Math.random() > 0.1 ? 'Active' : 'Inactive',
+                lastUpdated: new Date(Date.now() - Math.random() * 3600000).toLocaleTimeString()
+            });
+        });
+
+        return routes;
+    }
+
+    function generateMockPacketLogs() {
+        const logs = [];
+        const protocols = ['TCP', 'UDP'];
+        const directions = ['Incoming', 'Outgoing'];
+
+        for (let i = 0; i < 15; i++) {
+            logs.push({
+                time: new Date(Date.now() - Math.random() * 3600000).toLocaleTimeString(),
+                direction: directions[Math.floor(Math.random() * directions.length)],
+                source: `192.168.1.${Math.floor(Math.random() * 254) + 1}:${Math.floor(Math.random() * 65535)}`,
+                destination: `10.0.0.${Math.floor(Math.random() * 254) + 1}:${Math.floor(Math.random() * 65535)}`,
+                protocol: protocols[Math.floor(Math.random() * protocols.length)],
+                bytes: Math.floor(Math.random() * 100000),
+                encryption: Math.random() > 0.05 ? 'Success' : 'Failed',
+                status: Math.random() > 0.1 ? 'Success' : 'Failed'
+            });
+        }
+
+        return logs.sort((a, b) => new Date('1970/01/01 ' + b.time) - new Date('1970/01/01 ' + a.time));
+    }
+
+    function generateMockSessions() {
+        const sessions = [];
+
+        for (let i = 0; i < 10; i++) {
+            const duration = Math.floor(Math.random() * 3600);
+            sessions.push({
+                sessionId: `sess_${Math.random().toString(36).substr(2, 8)}`,
+                sourceIp: `192.168.1.${Math.floor(Math.random() * 254) + 1}`,
+                destIp: `10.0.0.${Math.floor(Math.random() * 254) + 1}`,
+                protocol: Math.random() > 0.5 ? 'TCP' : 'UDP',
+                duration: `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}`,
+                bytesIn: Math.floor(Math.random() * 1000000),
+                bytesOut: Math.floor(Math.random() * 1000000),
+                status: Math.random() > 0.2 ? 'Active' : 'Completed'
+            });
+        }
+
+        return sessions;
+    }
+
+    // Utility functions
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function showNotification(message, type) {
+        // Simple notification system
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: ${type === 'success' ? '#4CAF50' : '#f44336'};
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        `;
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        // Animate in
+        setTimeout(() => {
+            notification.style.opacity = '1';
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+
+        // Auto remove
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    function startAutoRefresh() {
+        updateInterval = setInterval(() => {
+            if (snifferActive) {
+                updateDashboard();
+            }
+        }, 5000); // Update every 5 seconds
+    }
+
+    // Initialize status
+    updateSnifferStatus();
+</script>
+</body>
+</html>
